@@ -4,3 +4,5 @@
 .idea/modules.xml
 .idea/misc.xml
 .idea/decision-tree.iml
+__pycache__/CART.cpython-37.pyc
+.vs/decision-tree/v16/.suo
