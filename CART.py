@@ -79,6 +79,26 @@ class Solution:
                     nodes += "L" + str(i) + "C"+ str(self.tree[i].majorityClass)
         return count, nodes
 
+    def copy(self, new_id):
+        s = Solution(self.params,new_id)
+        for node in range(len(self.tree)):
+            if (self.tree[node].nodeType==NodeType.NODE_NULL):
+                continue
+
+            if (self.tree[node].nbSamplesNode > 0):
+                s.tree[node].resetNode()
+
+            for sample in self.tree[node].samples:
+                s.tree[node].addSample(sample)
+            s.tree[node].nodeType = self.tree[node].nodeType
+            s.tree[node].splitAttribute = self.tree[node].splitAttribute
+            s.tree[node].splitValue = self.tree[node].splitValue
+            s.tree[node].entropy = self.tree[node].entropy
+            s.tree[node].level = self.tree[node].level
+            s.tree[node].majorityClass = self.tree[node].majorityClass
+            s.tree[node].evaluate()
+        return s
+
     def __init__(self, params, id):
         self.params = params
         self.startTime = datetime.datetime.now()
@@ -96,7 +116,9 @@ class Solution:
     def getTime(self):
         return self.endTime - self.startTime
 
+    #AVALIAR SE A RESET NODE E A COPY NAO ESTAO REDUNDANTES
     def ResetNode(self, node):
+        return
         if (node > self.maxnbNodes):
             return
         if (self.tree[node].nodeType == NodeType.NODE_NULL):
@@ -305,9 +327,8 @@ class Greedy:
             if (forcedAttribute != ""):
                 if (forcedAttribute != att):
                     continue
-                else:
-                    self.solution.ResetNode(node)
-                    nodeObj = self.solution.tree[node]
+            
+            #nodeObj = self.solution.tree[node]
 
             if (self.params.attributeTypes[att] == AttributeType.TYPE_NUMERICAL):
 #               CASE 1) -- FIND SPLIT WITH BEST INFORMATION GAIN FOR NUMERICAL ATTRIBUTE c */

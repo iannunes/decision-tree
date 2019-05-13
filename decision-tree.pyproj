@@ -26,6 +26,53 @@
     </Compile>
     <Compile Include="decision_tree.py" />
   </ItemGroup>
+  <ItemGroup>
+    <Folder Include="Datasets\" />
+    <Folder Include="Solutions\" />
+  </ItemGroup>
+  <ItemGroup>
+    <Content Include="Datasets\p01.txt" />
+    <Content Include="Datasets\p02.txt" />
+    <Content Include="Datasets\p03.txt" />
+    <Content Include="Datasets\p04.txt" />
+    <Content Include="Datasets\p05.txt" />
+    <Content Include="Datasets\p06.txt" />
+    <Content Include="Datasets\p07.txt" />
+    <Content Include="Datasets\p08.txt" />
+    <Content Include="Datasets\p09.txt" />
+    <Content Include="Datasets\p10.txt" />
+    <Content Include="Datasets\README.txt" />
+    <Content Include="Solutions\201959221512_p01.txt" />
+    <Content Include="Solutions\201959221512_p02.txt" />
+    <Content Include="Solutions\201959221512_p03.txt" />
+    <Content Include="Solutions\201959221512_p04.txt" />
+    <Content Include="Solutions\201959221512_p05.txt" />
+    <Content Include="Solutions\201959221512_p06.txt" />
+    <Content Include="Solutions\201959221512_p07.txt" />
+    <Content Include="Solutions\201959221512_p08.txt" />
+    <Content Include="Solutions\201959221512_p09.txt" />
+    <Content Include="Solutions\201959221512_p10.txt" />
+    <Content Include="Solutions\201959223341_p01.txt" />
+    <Content Include="Solutions\201959223341_p02.txt" />
+    <Content Include="Solutions\201959223341_p03.txt" />
+    <Content Include="Solutions\201959223341_p04.txt" />
+    <Content Include="Solutions\201959223341_p05.txt" />
+    <Content Include="Solutions\201959223341_p06.txt" />
+    <Content Include="Solutions\201959223341_p07.txt" />
+    <Content Include="Solutions\201959223341_p08.txt" />
+    <Content Include="Solutions\201959223341_p09.txt" />
+    <Content Include="Solutions\201959223341_p10.txt" />
+    <Content Include="Solutions\201959223347_p01.txt" />
+    <Content Include="Solutions\201959223347_p02.txt" />
+    <Content Include="Solutions\201959223347_p03.txt" />
+    <Content Include="Solutions\201959223347_p04.txt" />
+    <Content Include="Solutions\201959223347_p05.txt" />
+    <Content Include="Solutions\201959223347_p06.txt" />
+    <Content Include="Solutions\201959223347_p07.txt" />
+    <Content Include="Solutions\201959223347_p08.txt" />
+    <Content Include="Solutions\201959223347_p09.txt" />
+    <Content Include="Solutions\201959223347_p10.txt" />
+  </ItemGroup>
   <Import Project="$(MSBuildExtensionsPath32)\Microsoft\VisualStudio\v$(VisualStudioVersion)\Python Tools\Microsoft.PythonTools.targets" />
   <!-- Uncomment the CoreCompile target to enable the Build command in
        Visual Studio and specify your pre- and post-build commands in

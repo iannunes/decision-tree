@@ -17,7 +17,7 @@ def getNextSolution(solutions, count):
     
     for i,s in solutions.items():
         indice=i
-        if (count % 4 == 0):
+        if (count % 2 == 0):
             print("SOLUCAO ALEATÓRIA")
             return solutions.pop(indice)
         m = s.calculateMisclassifiedSamples()
@@ -51,7 +51,7 @@ def execute(pathData,pathOutput,seedRNG, maxDepth, maxTime):
 
     sol.printAndExport(pathOutput)
     nodes, nodeToString = sol.countNodes()
-    solutions[nodeToString] = sol
+    solutions[str(sol.calculateMisclassifiedSamples())+nodeToString] = sol
     allsolutions[nodeToString] = sol
 
     solutionsTested = {}
@@ -67,10 +67,10 @@ def execute(pathData,pathOutput,seedRNG, maxDepth, maxTime):
         tabu[str(solution.id)+"_0_"+str(i)] = countTests
 
         nodeCount, nodeToString = solution.countNodes()
-        solutions[nodeToString] = solution
+        solutions[str(solution.calculateMisclassifiedSamples())+nodeToString] = solution
         allsolutions[nodeToString] = solution
-        #print("ROOT WITH ATTRIBUTE ", i," MISCLASSIFIED: ", solution.calculateMisclassifiedSamples()," USING ", nodeCount ," NODES - TIME: " ,solution.getTime())
-    #    #solution.printAndExport(pathOutput)
+        print("ROOT WITH ATTRIBUTE ", i," MISCLASSIFIED: ", solution.calculateMisclassifiedSamples()," USING ", nodeCount ," NODES - TIME: " ,solution.getTime())
+    #   #solution.printAndExport(pathOutput)
 
     nodelist = []
     splitAtributelist = []
@@ -88,8 +88,7 @@ def execute(pathData,pathOutput,seedRNG, maxDepth, maxTime):
             break
         
         for i in range(0, len(nodelist)):
-            if (sol.tree[i].nodeType == CART.NodeType.NODE_LEAF):
-                continue
+
             countTests += 1
             if (countSkippedTests > 3):
                 countSkippedTests=0
@@ -98,7 +97,7 @@ def execute(pathData,pathOutput,seedRNG, maxDepth, maxTime):
                 tabu = {}
                 if len(solutions)==0:
                     break
-                sol = getNextSolution(solutions,countTests)
+                sol = getNextSolution(solutions, countTests)
                 print("TROCANDO SOLUCAO BASE - ", sol.calculateMisclassifiedSamples(), " - SOLUCOES POSSIVEIS ", len(solutions))
                 for l in range(0, len(sol.tree)):
                     if (sol.tree[l].nodeType != CART.NodeType.NODE_NULL):
@@ -106,7 +105,11 @@ def execute(pathData,pathOutput,seedRNG, maxDepth, maxTime):
                         splitAtributelist.append(sol.tree[l].splitAttribute)
                 break
 
-            solution = CART.Solution(params, countSolutions)
+            if (sol.tree[i].nodeType != CART.NodeType.NODE_INTERNAL):
+                continue
+
+            solution = sol.copy(countSolutions)
+
             countSolutions +=1
 
             attrib = random.randint(0,params.nbAttributes - 1)
@@ -125,19 +128,6 @@ def execute(pathData,pathOutput,seedRNG, maxDepth, maxTime):
                 continue
 
             node = nodelist[i]
-            for j in range(len(nodelist)):
-                node2 = nodelist[j]
-                if (solution.tree[node2].nbSamplesNode > 0):
-                    solution.tree[node2].resetNode()
-                for sample in sol.tree[node2].samples:
-                    solution.tree[node2].addSample(sample)
-                solution.tree[node2].nodeType = sol.tree[node2].nodeType
-                solution.tree[node2].splitAttribute = sol.tree[node2].splitAttribute
-                solution.tree[node2].splitValue = sol.tree[node2].splitValue
-                solution.tree[node2].entropy = sol.tree[node2].entropy
-                solution.tree[node2].level = sol.tree[node2].level
-                solution.tree[node2].majorityClass = sol.tree[node2].majorityClass
-                solution.tree[node2].evaluate()
 
             greedy = CART.Greedy(params, solution, False)
             greedy.recursiveConstruction(node, sol.tree[node].level, attrib)
@@ -148,9 +138,9 @@ def execute(pathData,pathOutput,seedRNG, maxDepth, maxTime):
             tabu[testedKey] = countTests
             
             #solution.printAndExport(pathOutput);
-            if (nodeToString not in allsolutions):
-                #print("NODE ", node ," LEVEL ",solution.tree[node].level, "ATTRIBUTE ",attrib," - MISCLASSIFIED: ",solution.calculateMisclassifiedSamples(),"  USING ", nodeCount ," NODES - TIME: " ,solution.getTime())
-                solutions[nodeToString] = solution
+            if (str(solution.calculateMisclassifiedSamples())+nodeToString not in allsolutions):
+                print(solution.tree[node].nodeType," ", node ," LEVEL ",solution.tree[node].level, "ATTRIBUTE ",attrib," - MISCLASSIFIED: ",solution.calculateMisclassifiedSamples(),"  USING ", nodeCount ," NODES - TIME: " ,solution.getTime())
+                solutions[str(solution.calculateMisclassifiedSamples())+nodeToString] = solution
             
             allsolutions[nodeToString] = solution
 
@@ -183,27 +173,28 @@ def execute(pathData,pathOutput,seedRNG, maxDepth, maxTime):
     print("----- DECISION TREE OPTIMIZATION COMPLETED IN ", (params.endTime - params.startTime), "(s)")
 
 fileTime = str(datetime.datetime.now().year) + str(datetime.datetime.now().month)+str(datetime.datetime.now().day)+str(datetime.datetime.now().hour)+str(datetime.datetime.now().minute)+str(datetime.datetime.now().second)
-levels = 4
-maxExecutionTime=1200
-file = "p01.txt"
-execute("C:\\Users\\iannu\\Dropbox\\doutorado\\metaheuristics\\decision-tree\\Datasets\\"+file,"C:\\Users\\iannu\\\Documents\\doutorado\\\codigo\\metaheuristicas\\decision-tree\\decision-tree\\Solutions\\"+fileTime+"_"+file,30,levels,maxExecutionTime)
-file = "p02.txt"
-execute("C:\\Users\\iannu\\Dropbox\\doutorado\\metaheuristics\\decision-tree\\Datasets\\"+file,"C:\\Users\\iannu\\\Documents\\doutorado\\\codigo\\metaheuristicas\\decision-tree\\decision-tree\\Solutions\\"+fileTime+"_"+file,30,levels,maxExecutionTime)
-file = "p03.txt"
-execute("C:\\Users\\iannu\\Dropbox\\doutorado\\metaheuristics\\decision-tree\\Datasets\\"+file,"C:\\Users\\iannu\\\Documents\\doutorado\\\codigo\\metaheuristicas\\decision-tree\\decision-tree\\Solutions\\"+fileTime+"_"+file,30,levels,maxExecutionTime)
-file = "p04.txt"
-execute("C:\\Users\\iannu\\Dropbox\\doutorado\\metaheuristics\\decision-tree\\Datasets\\"+file,"C:\\Users\\iannu\\\Documents\\doutorado\\\codigo\\metaheuristicas\\decision-tree\\decision-tree\\Solutions\\"+fileTime+"_"+file,30,levels,maxExecutionTime)
-file = "p05.txt"
-execute("C:\\Users\\iannu\\Dropbox\\doutorado\\metaheuristics\\decision-tree\\Datasets\\"+file,"C:\\Users\\iannu\\\Documents\\doutorado\\\codigo\\metaheuristicas\\decision-tree\\decision-tree\\Solutions\\"+fileTime+"_"+file,30,levels,maxExecutionTime)
-file = "p06.txt"
-execute("C:\\Users\\iannu\\Dropbox\\doutorado\\metaheuristics\\decision-tree\\Datasets\\"+file,"C:\\Users\\iannu\\\Documents\\doutorado\\\codigo\\metaheuristicas\\decision-tree\\decision-tree\\Solutions\\"+fileTime+"_"+file,30,levels,maxExecutionTime)
-file = "p07.txt"
-execute("C:\\Users\\iannu\\Dropbox\\doutorado\\metaheuristics\\decision-tree\\Datasets\\"+file,"C:\\Users\\iannu\\\Documents\\doutorado\\\codigo\\metaheuristicas\\decision-tree\\decision-tree\\Solutions\\"+fileTime+"_"+file,30,levels,maxExecutionTime)
-file = "p08.txt"
-execute("C:\\Users\\iannu\\Dropbox\\doutorado\\metaheuristics\\decision-tree\\Datasets\\"+file,"C:\\Users\\iannu\\\Documents\\doutorado\\\codigo\\metaheuristicas\\decision-tree\\decision-tree\\Solutions\\"+fileTime+"_"+file,30,levels,maxExecutionTime)
-file = "p09.txt"
-execute("C:\\Users\\iannu\\Dropbox\\doutorado\\metaheuristics\\decision-tree\\Datasets\\"+file,"C:\\Users\\iannu\\\Documents\\doutorado\\\codigo\\metaheuristicas\\decision-tree\\decision-tree\\Solutions\\"+fileTime+"_"+file,30,levels,maxExecutionTime)
+levels = 5
+maxExecutionTime=180
+
+#file = "p01.txt"
+#execute("Datasets\\"+file,"Solutions\\"+fileTime+"_"+file,30,levels,maxExecutionTime)
+#file = "p02.txt"
+#execute("Datasets\\"+file,"Solutions\\"+fileTime+"_"+file,30,levels,maxExecutionTime)
+#file = "p03.txt"
+#execute("Datasets\\"+file,"Solutions\\"+fileTime+"_"+file,30,levels,maxExecutionTime)
+#file = "p04.txt"
+#execute("Datasets\\"+file,"Solutions\\"+fileTime+"_"+file,30,levels,maxExecutionTime)
+#file = "p05.txt"
+#execute("Datasets\\"+file,"Solutions\\"+fileTime+"_"+file,30,levels,maxExecutionTime)
+#file = "p06.txt"
+#execute("Datasets\\"+file,"Solutions\\"+fileTime+"_"+file,30,levels,maxExecutionTime)
+#file = "p07.txt"
+#execute("Datasets\\"+file,"Solutions\\"+fileTime+"_"+file,30,levels,maxExecutionTime)
+#file = "p08.txt"
+#execute("Datasets\\"+file,"Solutions\\"+fileTime+"_"+file,30,levels,maxExecutionTime)
+#file = "p09.txt"
+#execute("Datasets\\"+file,"Solutions\\"+fileTime+"_"+file,30,levels,maxExecutionTime)
 file = "p10.txt"
-execute("C:\\Users\\iannu\\Dropbox\\doutorado\\metaheuristics\\decision-tree\\Datasets\\"+file,"C:\\Users\\iannu\\\Documents\\doutorado\\\codigo\\metaheuristicas\\decision-tree\\decision-tree\\Solutions\\"+fileTime+"_"+file,30,levels,maxExecutionTime)
+execute("Datasets\\"+file,"Solutions\\"+fileTime+"_"+file,30,levels,maxExecutionTime)
 
 
