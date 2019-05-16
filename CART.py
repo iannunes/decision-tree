@@ -96,6 +96,10 @@ class Solution:
             s.tree[node].entropy = self.tree[node].entropy
             s.tree[node].level = self.tree[node].level
             s.tree[node].majorityClass = self.tree[node].majorityClass
+            #s.tree[node].isOrderedSamples = self.tree[node].isOrderedSamples
+            #if (s.tree[node].isOrderedSamples):
+            #    s.tree[node].nbSamplesLevel = self.tree[node].nbSamplesLevel.copy()
+            #    s.tree[node].nbSamplesLevelClass = self.tree[node].nbSamplesLevelClass.copy()
             s.tree[node].evaluate()
         return s
 
@@ -299,20 +303,33 @@ class Node:
         self.nbSamplesLevelClass  = {}
         self.level = -1
 
-class Greedy:
-    def __init__(self, params, solution, autoexecute):
-        self.params = params
-        self.solution = solution
-        if (autoexecute==True):
-            self.recursiveConstruction(0,0,"")
-    
-    def recursiveConstruction(self, node, level, forcedAttribute):
+class CandidateSolution:
+    def __init__(self, splitAttribute, splitValue, informationGain):
+        self.splitAttribute = splitAttribute
+        self.splitValue = splitValue
+        self.informationGain = informationGain
+        self.solution = ""
 
-        nodeObj = self.solution.tree[node]
-       
+class Greedy:
+    def __init__(self, params):
+        self.params = params
+        self.solution = ""
+        self.bestSolution = None
+        self.MY_EPSILON = 0.00001
+
+        #if (autoexecute==True):
+        #    self.recursiveConstruction(0,0,"",2, solution)
+    
+    def recursiveConstruction(self, node, level, forcedAttribute, nbSearchChildren, solution, allsolutions):
+        if (self.solution == ""):
+            self.solution = solution
+
+        nodeObj = solution.tree[node]
         # BASE CASES -- MAXIMUM LEVEL HAS BEEN ATTAINED OR ALL SAMPLES BELONG TO THE SAME CLASS
         if (( level >= self.params.maxDepth ) or ( nodeObj.maxSameClass == nodeObj.nbSamplesNode )):
-            return
+            return solution
+
+        candidateSolutions = []
         
 #         LOOK FOR A BEST SPLIT        
         allIdentical = True
@@ -321,7 +338,6 @@ class Greedy:
         bestInformationGain = -1.e30
         bestSplitAttribute = -1
         bestSplitThrehold = -1.e30
-        MY_EPSILON = 0.00001
         
         for att in range(0, self.params.nbAttributes):
             if (forcedAttribute != ""):
@@ -335,7 +351,8 @@ class Greedy:
 #               Define some data structures
 
                 orderedSamples = nodeObj.getOrderedSamples()[att][1]         # Order of the samples according to attribute c
-                attributeLevels = nodeObj.getAttributeLevels()[att][1]       # Store the possible levels of this attribute among the samples (will allow to "skip" samples with equal attribute value)
+                attributeLevels = list(set(nodeObj.getAttributeLevels()[att][1]))       # Store the possible levels of this attribute among the samples (will allow to "skip" samples with equal attribute value)
+                attributeLevels.sort()
 
                 if (len(attributeLevels)<=1):
                     continue
@@ -351,7 +368,7 @@ class Greedy:
                 # Iterate on all samples with this attributeValue and switch them to the left
                 for attributeValue in attributeLevels:                     
 
-                    while (indexSample < nodeObj.nbSamplesNode and orderedSamples[indexSample][0] < float(attributeValue + MY_EPSILON)):                     
+                    while (indexSample < nodeObj.nbSamplesNode and orderedSamples[indexSample][0] < float(attributeValue + self.MY_EPSILON)):                     
                         nbSamplesClassLeft[orderedSamples[indexSample][1]]  += 1
                         nbSamplesClassRight[orderedSamples[indexSample][1]] -= 1
                         indexSample += 1
@@ -377,6 +394,7 @@ class Greedy:
                             bestInformationGain = informationGain
                             bestSplitAttribute = att
                             bestSplitThrehold = attributeValue
+                candidateSolutions.append((bestInformationGain, CandidateSolution(bestSplitAttribute, bestSplitThrehold, bestInformationGain)))
             else:
                 ##CASE 2) -- FIND BEST SPLIT FOR CATEGORICAL ATTRIBUTE c 
                 ##Count for each level of attribute c and each class the number of samples
@@ -405,36 +423,84 @@ class Greedy:
                             bestInformationGain = informationGain
                             bestSplitAttribute = att
                             bestSplitThrehold = l
+
+                candidateSolutions.append((bestInformationGain, CandidateSolution(bestSplitAttribute, bestSplitThrehold, bestInformationGain)))
+
         
         # SPECIAL CASE TO HANDLE POSSIBLE CONTADICTIONS IN THE DATA 
         # (Situations where the same samples have different classes -- In this case no improving split can be found)
 
-        # APPLY THE SPLIT AND RECURSIVE CALL */
-        nodeObj.splitAttribute = bestSplitAttribute
-        nodeObj.splitValue = bestSplitThrehold
-
         if (allIdentical): 
-            return
+            # APPLY THE SPLIT AND RECURSIVE CALL */
+            nodeObj.splitAttribute = bestSplitAttribute
+            nodeObj.splitValue = bestSplitThrehold
+            return solution
 
+        # APPLY THE SPLIT AND RECURSIVE CALL */
+
+        candidatesExecuted = []
+
+        for j in range(0,nbSearchChildren):
+            if (len(candidateSolutions) <= 0):
+                break
+            candidateSolution = self.getNextBestCandidateSolution(candidateSolutions)[1]
+            candidateSolution.solution = Solution.copy(solution,rd.randint(1000000,2000000))
+            candidatesExecuted.append(candidateSolution)
+            candidateSolution.solution = self.recursiveContructionAux(node, level, candidateSolution.solution, candidateSolution.splitAttribute, candidateSolution.splitValue, candidateSolution.informationGain, nbSearchChildren, allsolutions)
+
+        bestSolution = self.bestSolution
+        bestMisclassified = 200000000
+        if (self.bestSolution != None):
+            bestMisclassified = self.bestSolution.calculateMisclassifiedSamples()
+
+        for i in range(0,len(candidatesExecuted)):
+            candidatenodes, candidatenodestostring = candidatesExecuted[i].solution.countNodes()
+            allsolutions[candidatenodestostring] = candidatesExecuted[i].solution
+            misclassified = candidatesExecuted[i].solution.calculateMisclassifiedSamples()
+            if (misclassified<bestMisclassified):
+                bestSolution = candidatesExecuted[i].solution
+                bestMisclassified = misclassified
+
+        self.bestSolution = bestSolution
+        
+        self.bestSolution.endTime = datetime.datetime.now()
+        return self.bestSolution
+
+    def getNextBestCandidateSolution(self,candidates):
+        bestIndex = -1
+        bestIG = -1
+
+        for i in range(0,len(candidates)):
+            if (candidates[i][0]>bestIG):
+                bestIndex = i
+                bestIG = candidates[i][0]
+
+        return candidates.pop(bestIndex)
+
+    def recursiveContructionAux(self, node, level, solution, splitAttribute, splitValue, informationGain, nbSearchChildren, allsolutions ):
+        nodeObj = solution.tree[node]
+
+        nodeObj.splitAttribute = splitAttribute
+        nodeObj.splitValue = splitValue
         nodeObj.nodeType = NodeType.NODE_INTERNAL
 
-        self.solution.tree[2*node+1].nodeType = NodeType.NODE_LEAF
-        self.solution.tree[2*node+2].nodeType = NodeType.NODE_LEAF
-        self.solution.tree[2*node+1].level = level + 1 
-        self.solution.tree[2*node+2].level = level + 1 
+        solution.tree[2*node+1].nodeType = NodeType.NODE_LEAF
+        solution.tree[2*node+2].nodeType = NodeType.NODE_LEAF
+        solution.tree[2*node+1].level = level + 1 
+        solution.tree[2*node+2].level = level + 1 
         for s in nodeObj.samples:
-            if ((self.params.attributeTypes[bestSplitAttribute] == AttributeType.TYPE_NUMERICAL and 
-                 self.params.dataAttributes[s][bestSplitAttribute] < bestSplitThrehold + MY_EPSILON) or 
-                (self.params.attributeTypes[bestSplitAttribute] == AttributeType.TYPE_CATEGORICAL and
-                 self.params.dataAttributes[s][bestSplitAttribute] < bestSplitThrehold + MY_EPSILON and
-                 self.params.dataAttributes[s][bestSplitAttribute] > bestSplitThrehold - MY_EPSILON)):
-                self.solution.tree[2*node+1].addSample(s)
+            if ((self.params.attributeTypes[splitAttribute] == AttributeType.TYPE_NUMERICAL and 
+                    self.params.dataAttributes[s][splitAttribute] < splitValue + self.MY_EPSILON) or 
+                (self.params.attributeTypes[splitAttribute] == AttributeType.TYPE_CATEGORICAL and
+                    self.params.dataAttributes[s][splitAttribute] < splitValue + self.MY_EPSILON and
+                    self.params.dataAttributes[s][splitAttribute] > splitValue - self.MY_EPSILON)):
+                solution.tree[2*node+1].addSample(s)
             else:
-                self.solution.tree[2*node+2].addSample(s)
+                solution.tree[2*node+2].addSample(s)
 
-        self.solution.tree[2*node+1].evaluate() # Setting all other data structures
-        self.solution.tree[2*node+2].evaluate() # Setting all other data structures
-        self.recursiveConstruction(2*node+1,level+1,"") # Recursive call
-        self.recursiveConstruction(2*node+2,level+1,"") # Recursive call
-        self.solution.endTime = datetime.datetime.now()
+        solution.tree[2*node+1].evaluate() # Setting all other data structures
+        solution.tree[2*node+2].evaluate() # Setting all other data structures
 
+        solution = self.recursiveConstruction(2*node+1,level+1,"", nbSearchChildren, solution, allsolutions) # Recursive call
+        solution = self.recursiveConstruction(2*node+2,level+1,"", nbSearchChildren, solution, allsolutions) # Recursive call
+        return solution
