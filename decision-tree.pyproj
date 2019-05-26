@@ -25,12 +25,10 @@
       <SubType>Code</SubType>
     </Compile>
     <Compile Include="decision_tree.py" />
-    <Compile Include="temp.py">
-      <SubType>Code</SubType>
-    </Compile>
   </ItemGroup>
   <ItemGroup>
     <Folder Include="Datasets\" />
+    <Folder Include="Reports\" />
     <Folder Include="Solutions\" />
   </ItemGroup>
   <ItemGroup>
@@ -44,7 +42,17 @@
     <Content Include="Datasets\p08.txt" />
     <Content Include="Datasets\p09.txt" />
     <Content Include="Datasets\p10.txt" />
+    <Content Include="Datasets\p28.txt" />
+    <Content Include="Datasets\p39.txt" />
+    <Content Include="Datasets\p40.txt" />
+    <Content Include="Datasets\p43.txt" />
+    <Content Include="Datasets\p50.txt" />
+    <Content Include="Datasets\p51.txt" />
+    <Content Include="Datasets\p52.txt" />
+    <Content Include="Datasets\p53.txt" />
+    <Content Include="Datasets\p54.txt" />
     <Content Include="Datasets\README.txt" />
+    <Content Include="Reports\misclassified_instance_seed.xlsx" />
     <Content Include="Solutions\201959221512_p01.txt" />
     <Content Include="Solutions\201959221512_p02.txt" />
     <Content Include="Solutions\201959221512_p03.txt" />

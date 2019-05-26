@@ -252,10 +252,10 @@ class Params(object):
 
         self.startTime = datetime.datetime.now()
         #if debug:
-        #    print("----- DATASET [",self.datasetName,"]") # LOADED IN " << clock()/ (double)CLOCKS_PER_SEC << "(s)" << std::endl;
-        #    print("----- NUMBER OF SAMPLES: ", self.nbSamples) 
-        #    print("----- NUMBER OF ATTRIBUTES: ",self.nbAttributes)
-        #    print("----- NUMBER OF CLASSES: ",self.nbClasses)
+        #    print("----- dataset [",self.datasetname,"]") # loaded in " << clock()/ (double)clocks_per_sec << "(s)" << std::endl;
+        #    print("----- number of samples: ", self.nbsamples) 
+        #    print("----- number of attributes: ",self.nbattributes)
+        #    print("----- number of classes: ",self.nbclasses)
 
 class Node:
     
@@ -403,8 +403,9 @@ class Greedy:
         bestInformationGain = -1.e30
         bestSplitAttribute = -1
         bestSplitThrehold = -1.e30
-        
+        candidatesperAttr = {}
         for att in range(0, self.params.nbAttributes):
+            candidatesperAttr[att]=0
             if (forcedAttribute != ""):
                 if (forcedAttribute != att):
                     continue
@@ -515,7 +516,11 @@ class Greedy:
         for j in range(0,nbCandidateSolutions):
             if (len(candidateSolutions)<=0):
                 break
-            nodeObj.bestCandidates.append(self.getNextBestCandidateSolution(candidateSolutions)[1])
+            c = self.getNextBestCandidateSolution(candidateSolutions)[1]
+            if (len(candidateSolutions) > nbSearchChildren and (candidatesperAttr[c.splitAttribute]>=1)):
+                continue
+            nodeObj.bestCandidates.append(c)
+            candidatesperAttr[c.splitAttribute] += 1
 
         for j in range(0,nbSearchChildren):
             if (len(nodeObj.bestCandidates) <= j):
@@ -616,8 +621,9 @@ class Greedy:
         bestInformationGain = -1.e30
         bestSplitAttribute = -1
         bestSplitThrehold = -1.e30
-        
+        candidatesperAttr = {}
         for att in range(0, self.params.nbAttributes):
+            candidatesperAttr[att]=0
             if (forcedAttribute != ""):
                 if (forcedAttribute != att):
                     continue
@@ -728,10 +734,14 @@ class Greedy:
             if (datetime.datetime.now()-self.params.startTime).seconds>self.params.maxTime:
                 break
             candidateSolution = self.getNextBestCandidateSolution(candidateSolutions)[1]
+            if (len(candidateSolutions)>(nbSearchChildren-j) and (candidatesperAttr[candidateSolution.splitAttribute]>=1)):
+                j = j-1
+                continue
+            candidatesperAttr[candidateSolution.splitAttribute] += 1
             newid=rd.randint(1100000000,2000000000)
             candidateSolution.solution = solution.partialCopy(newid,node)
             candidatesExecuted.append(candidateSolution)
-            candidateSolution.solution = self.recursiveContructionAux(node, level, candidateSolution.solution, candidateSolution.splitAttribute, candidateSolution.splitValue, candidateSolution.informationGain, 1, allsolutions, False, nbSearchChildren)
+            candidateSolution.solution = self.recursiveContructionAux(node, level, candidateSolution.solution, candidateSolution.splitAttribute, candidateSolution.splitValue, candidateSolution.informationGain, 3, allsolutions, False, nbSearchChildren)
             candidateSolution.nodes, candidateSolution.nodestostring = candidateSolution.solution.countNodes()
             candidateSolution.misclassified = candidateSolution.solution.calculateMisclassifiedSamples()
 
@@ -758,170 +768,6 @@ class Greedy:
         
         self.bestSolution.endTime = datetime.datetime.now()
         return self.bestSolution
-
-#    def recursiveConstructionrandom(self, node, level, forcedAttribute, nbSearchChildren, solution, allsolutions):
-#        if (self.solution == ""):
-#            self.solution = solution
-
-#        nodeObj = solution.tree[node]
-#        # BASE CASES -- MAXIMUM LEVEL HAS BEEN ATTAINED OR ALL SAMPLES BELONG TO THE SAME CLASS
-#        if (( level >= self.params.maxDepth ) or ( nodeObj.maxSameClass == nodeObj.nbSamplesNode )):
-#            return solution
-
-#        candidateSolutions = []
-        
-##         LOOK FOR A BEST SPLIT        
-#        allIdentical = True
-#        nbSamplesNode = nodeObj.nbSamplesNode
-#        originalEntropy = nodeObj.entropy
-#        bestInformationGain = -1.e30
-#        bestSplitAttribute = -1
-#        bestSplitThrehold = -1.e30
-        
-#        for att in range(0, self.params.nbAttributes):
-#            if (forcedAttribute != ""):
-#                if (forcedAttribute != att):
-#                    continue
-            
-#            #nodeObj = self.solution.tree[node]
-
-#            if (self.params.attributeTypes[att] == AttributeType.TYPE_NUMERICAL):
-##               CASE 1) -- FIND SPLIT WITH BEST INFORMATION GAIN FOR NUMERICAL ATTRIBUTE c */
-##               Define some data structures
-
-#                orderedSamples = nodeObj.getOrderedSamples()[att][1]         # Order of the samples according to attribute c
-#                attributeLevels = list(set(nodeObj.getAttributeLevels()[att][1]))       # Store the possible levels of this attribute among the samples (will allow to "skip" samples with equal attribute value)
-#                attributeLevels.sort()
-
-#                if (len(attributeLevels)<=1):
-#                    continue
-#                else:
-#                    allIdentical = False
-                
-#                #Initially all samples are on the right
-#                nbSamplesClassLeft = [0 for y in range(self.params.nbClasses+1)]
-#                nbSamplesClassRight = [nodeObj.nbSamplesClass[y] for y in range(self.params.nbClasses+1)]
-#                indexSample = 0
-
-#                # Go through all possible attribute values in increasing order
-#                # Iterate on all samples with this attributeValue and switch them to the left
-#                for attributeValue in attributeLevels:                     
-
-#                    while (indexSample < nodeObj.nbSamplesNode and orderedSamples[indexSample][0] < float(attributeValue + self.MY_EPSILON)):                     
-#                        nbSamplesClassLeft[orderedSamples[indexSample][1]]  += 1
-#                        nbSamplesClassRight[orderedSamples[indexSample][1]] -= 1
-#                        indexSample += 1
-
-#                    if (indexSample != nbSamplesNode):
-#                        #Evaluate entropy of the two resulting sample sets
-#                        entropyLeft = 0
-#                        entropyRight = 0
-                        
-#                        for c in range(0, self.params.nbClasses):
-#                            #Remark that indexSample contains at this stage the number of samples in the left
-#                            if (nbSamplesClassLeft[c]>0):
-#                                fracLeft = nbSamplesClassLeft[c] / indexSample
-#                                entropyLeft -= fracLeft * math.log(fracLeft)
-#                            if (nbSamplesClassRight[c]>0):
-#                                fracRight = nbSamplesClassRight[c] / (nodeObj.nbSamplesNode - indexSample)
-#                                entropyRight -= fracRight * math.log(fracRight)
-                            
-#                            #Evaluate the information gain and store if this is the best option found until now
-#                        informationGain = originalEntropy - (indexSample*entropyLeft + (nbSamplesNode - indexSample)*entropyRight) / nbSamplesNode
-
-#                        candidateSolutions.append((informationGain, CandidateSolution(att, attributeValue, informationGain)))
-#                        if (informationGain > bestInformationGain):
-#                            bestInformationGain = informationGain
-#                            bestSplitAttribute = att
-#                            bestSplitThrehold = attributeValue
-                                           
-#                candidateSolutions.append((bestInformationGain, CandidateSolution(bestSplitAttribute, bestSplitThrehold, bestInformationGain)))
-#            else:
-#                ##CASE 2) -- FIND BEST SPLIT FOR CATEGORICAL ATTRIBUTE c 
-#                ##Count for each level of attribute c and each class the number of samples
-
-#                nbSamplesLevel = nodeObj.getnbSamplesLevel()[att]
-#                nbSamplesClass = nodeObj.nbSamplesClass
-#                nbSamplesLevelClass = nodeObj.getnbSamplesLevelClass()[att]
-
-#                #Calculate information gain for a split at each possible level of attribute c
-#                for l in range(0,int(self.params.nbLevels[att])):
-#                    if (nbSamplesLevel[l] > 0 and nbSamplesLevel[l] <= nbSamplesNode):
-#                        #Evaluate entropy of the two resulting sample sets
-#                        allIdentical = False
-#                        entropyLevel = 0
-#                        entropyOthers = 0
-#                        for c in range(0,self.params.nbClasses):
-#                            if (nbSamplesLevelClass[l][c] > 0):
-#                                fracLevel = nbSamplesLevelClass[l][c] / nbSamplesLevel[l]
-#                                entropyLevel -= fracLevel * math.log(fracLevel)
-#                            if (nbSamplesClass[c] - nbSamplesLevelClass[l][c] > 0):
-#                                fracOthers = (nbSamplesClass[c] - nbSamplesLevelClass[l][c]) / (nbSamplesNode - nbSamplesLevel[l])
-#                                entropyOthers -= fracOthers * math.log(fracOthers)
-#                        # Evaluate the information gain and store if this is the best option found until now
-#                        informationGain = originalEntropy - (nbSamplesLevel[l] *entropyLevel + (nbSamplesNode - nbSamplesLevel[l])*entropyOthers) / nbSamplesNode 
-
-#                        candidateSolutions.append((informationGain, CandidateSolution(att, l, informationGain)))
-#                        if (informationGain > bestInformationGain):
-#                            bestInformationGain = informationGain
-#                            bestSplitAttribute = att
-#                            bestSplitThrehold = l
-
-#                candidateSolutions.append((bestInformationGain, CandidateSolution(bestSplitAttribute, bestSplitThrehold, bestInformationGain)))
-
-        
-#        # SPECIAL CASE TO HANDLE POSSIBLE CONTADICTIONS IN THE DATA 
-#        # (Situations where the same samples have different classes -- In this case no improving split can be found)
-
-#        if (allIdentical): 
-#            # APPLY THE SPLIT AND RECURSIVE CALL */
-#            nodeObj.splitAttribute = bestSplitAttribute
-#            nodeObj.splitValue = bestSplitThrehold
-#            return solution
-
-#        # APPLY THE SPLIT AND RECURSIVE CALL */
-
-#        candidatesExecuted = []
-#        candidatestoExecution = []
-
-#        for j in range(0,nbSearchChildren):
-#            if (len(candidateSolutions) <= 0):
-#                break
-#            candidateSolution = self.getNextBestCandidateSolution(candidateSolutions)[1]
-#            candidateSolution.solution = solution.partialCopy(rd.randint(10000000,200000000),node)
-#            candidatestoExecution.append(candidateSolution)
-
-#        indextoExecute = rd.randint(0,len(candidatestoExecution)-1)
-#        candidateSolution = candidatestoExecution[indextoExecute]
-#        candidatesExecuted.append(candidateSolution)
-#        candidateSolution.solution = self.recursiveContructionAux(node, level, candidateSolution.solution, candidateSolution.splitAttribute, candidateSolution.splitValue, candidateSolution.informationGain, 1, allsolutions, False)
-#        candidateSolution.nodes, candidateSolution.nodestostring = candidateSolution.solution.countNodes()
-#        candidateSolution.misclassified = candidateSolution.solution.calculateMisclassifiedSamples()
-
-#        bestSolution = self.bestSolution
-#        bestMisclassified = 200000000
-#        bestNodes = 200000000
-#        if (self.bestSolution != None):
-#            bestMisclassified = self.bestSolution.calculateMisclassifiedSamples()
-
-#        for i in range(0,len(candidatesExecuted)):
-#            allsolutions[candidatesExecuted[i].nodestostring] = candidatesExecuted[i].solution
-#            if (candidatesExecuted[i].misclassified<=bestMisclassified):
-#                if (candidatesExecuted[i].misclassified==bestMisclassified):
-#                    if (candidatesExecuted[i].nodes<bestNodes):
-#                        bestNodes = candidatesExecuted[i].nodes
-#                        bestSolution = candidatesExecuted[i].solution
-#                        bestMisclassified = candidatesExecuted[i].misclassified
-#                else:
-#                    bestNodes = candidatesExecuted[i].nodes
-#                    bestSolution = candidatesExecuted[i].solution
-#                    bestMisclassified = candidatesExecuted[i].misclassified
-
-#        self.bestSolution = bestSolution
-        
-#        self.bestSolution.endTime = datetime.datetime.now()
-#        return self.bestSolution
-
 
     def getNextBestCandidateSolution(self,candidates):
         bestIndex = -1
@@ -958,10 +804,6 @@ class Greedy:
         solution.tree[2*node+1].evaluate() # Setting all other data structures
         solution.tree[2*node+2].evaluate() # Setting all other data structures
 
-        if random:
-            solution = self.recursiveConstructionrandom(2*node+1,level+1,"", nbSearchChildren, solution, allsolutions) # Recursive call
-            solution = self.recursiveConstructionrandom(2*node+2,level+1,"", nbSearchChildren, solution, allsolutions) # Recursive call
-        else:
-            solution = self.recursiveConstruction(2*node+1,level+1,"", nbSearchChildren, solution, allsolutions, nbCandidateSolutions) # Recursive call
-            solution = self.recursiveConstruction(2*node+2,level+1,"", nbSearchChildren, solution, allsolutions, nbCandidateSolutions) # Recursive call
+        solution = self.recursiveConstruction(2*node+1,level+1,"", nbSearchChildren, solution, allsolutions, nbCandidateSolutions) # Recursive call
+        solution = self.recursiveConstruction(2*node+2,level+1,"", nbSearchChildren, solution, allsolutions, nbCandidateSolutions) # Recursive call
         return solution
